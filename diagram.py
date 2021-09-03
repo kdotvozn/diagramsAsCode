@@ -1,9 +1,70 @@
-#! /usr/bin/env python3
+# #! /usr/bin/env python3
+import os
+os.environ["PATH"] += os.pathsep + 'D:/apps/graphviz/bin/'
 
-from diagrams import Diagram
+from diagrams import Cluster, Diagram, Edge
+
 from diagrams.aws.compute import EC2
-from diagrams.aws.database import RDS
-from diagrams.aws.network import ELB
+from diagrams.onprem.client import Client
+from diagrams.onprem.client import User
+from diagrams.onprem.client import Users
+from diagrams.onprem.network import Tomcat
+from diagrams.onprem.database import Postgresql
 
-with Diagram("Web Service", show=False):
-    ELB("lb") >> EC2("web") >> RDS("userdb")
+from diagrams.onprem.ci import Jenkins
+from diagrams.onprem.iac import Terraform
+from diagrams.onprem.iac import Ansible
+
+from diagrams.custom import Custom
+
+
+with Diagram("Job1", show=True):
+
+    with Cluster("Orchestration"):
+        jenkins = Jenkins("Jenkins")
+
+    terraform = Terraform("")
+
+    with Cluster("AWS"):
+        with Cluster("CentOS node"):
+            centos = EC2("CentOS")
+        with Cluster("Ubuntu node"):
+            ubuntu = EC2("Ubuntu")
+
+    jenkins >> terraform
+    terraform >> [centos, ubuntu]
+
+
+with Diagram("Job2", show=True):
+
+    with Cluster("Orchestration"):
+        jenkins = Jenkins("Jenkins")
+
+    with Cluster("Configurer"):
+        ansible = Ansible("Ansible")
+
+    client = Client("client")
+
+
+
+    with Cluster("Ubuntu node"):
+        maven = Custom(label="", icon_path="Apache_Maven_logo.svg.png")
+        with Cluster("Tomcat"):
+            tomcat = Tomcat("Tomcat")
+            tomcat >> Edge() << client
+            geo = Custom(label="Geocitizen", icon_path="./web.png")
+            maven >> geo
+
+    with Cluster("CentOS node"):
+        postgresql = Postgresql("Postgresql")
+
+    jenkins >> ansible
+    ansible >> [maven, tomcat, postgresql]
+    postgresql >> Edge() << geo
+
+    terraform >> maven
+
+
+
+
+
